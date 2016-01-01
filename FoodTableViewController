@@ -1,0 +1,211 @@
+//
+//  FoodTableViewController.swift
+//  FoodRecord
+//
+//  Created by GuShuCun on 2015/11/18.
+//  Copyright © 2015年 GuShuCun. All rights reserved.
+//
+
+import UIKit
+import CoreData
+
+class FoodTableViewController: UITableViewController, UISearchResultsUpdating, NSFetchedResultsControllerDelegate {
+    
+    @IBOutlet var foodTableView: UITableView!
+    
+    // NSFetchedResultsController
+    var fetchResultController: NSFetchedResultsController!
+    
+    // 宣告儲存資料的陣列
+    var foodContents: [FoodContent]? = [] {
+        didSet {
+            tableView?.reloadData()
+        }
+    }
+    
+    // Add a sear bar
+    var searchController = UISearchController()
+    var searchResults: [FoodContent] = []
+
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // to catch CoreData
+        let fetchRequest = NSFetchRequest(entityName: "FoodContent")
+        let sortDescriptor = NSSortDescriptor(key: "name", ascending: true)
+        fetchRequest.sortDescriptors = [sortDescriptor]
+        if let managedObjectContext = (UIApplication.sharedApplication().delegate as? AppDelegate)?.managedObjectContext {
+            fetchResultController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: managedObjectContext, sectionNameKeyPath: nil, cacheName: nil)
+            fetchResultController?.delegate = self
+            do {
+                try fetchResultController.performFetch()
+                foodContents = fetchResultController.fetchedObjects as? [FoodContent]
+            } catch {
+                fatalError("Failure to save context :\(error)")
+            }
+        }
+        
+        // 設定下一頁返回字
+        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: .Plain, target: nil, action: nil)
+        
+        // 抓取CoreData資料
+        foodContents = FoodContent.getAllFoodContents()
+        
+        // 呼叫sear bar
+        searchController = UISearchController(searchResultsController: nil)
+        searchController.searchBar.sizeToFit()
+        tableView.tableHeaderView = searchController.searchBar
+        definesPresentationContext = true
+        
+        // update search result
+        searchController.searchResultsUpdater = self
+        searchController.dimsBackgroundDuringPresentation = true
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    // MARK: - NSFetchedResultsController
+    func controllerWillChangeContent(controller: NSFetchedResultsController) {
+        tableView.beginUpdates()
+    }
+    
+    
+    func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
+        switch type {
+        case .Insert:
+            tableView.insertSections(NSIndexSet(index: sectionIndex), withRowAnimation: .Automatic)
+        case .Delete:
+            tableView.deleteSections(NSIndexSet(index: sectionIndex), withRowAnimation: .Automatic)
+        default:
+            tableView.reloadData()
+        }
+    }
+    
+    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+        switch type {
+        case .Insert:
+            tableView.insertRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
+        case .Delete:
+            tableView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)
+        case .Update:
+            tableView.reloadRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
+        default:
+            tableView.reloadData()
+        }
+        
+        foodContents = controller.fetchedObjects as? [FoodContent]
+    }
+    
+    func controllerDidChangeContent(controller: NSFetchedResultsController) {
+        tableView.endUpdates()
+    }
+    
+    // MARK: - Search Bar
+    
+    func filterFoodContentForSearchText(searchText: String) {
+        searchResults = foodContents!.filter({ (foodContents: FoodContent) -> Bool in
+            let nameMatch = foodContents.name.rangeOfString(searchText, options: NSStringCompareOptions.CaseInsensitiveSearch, range: nil, locale: nil)
+            return nameMatch != nil
+        })
+    }
+    
+    func updateSearchResultsForSearchController(searchController: UISearchController) {
+        filterFoodContentForSearchText(searchController.searchBar.text!)
+        tableView.reloadData()
+    }
+
+    // MARK: - Table View Data Source
+
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
+    }
+
+    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if searchController.active && searchController.searchBar.text != "" {
+            return self.searchResults.count
+        } else {
+            return self.foodContents!.count
+        }
+    }
+    
+    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        
+        let foodIdentifier = "foodCell"
+        let cell = tableView.dequeueReusableCellWithIdentifier(foodIdentifier, forIndexPath: indexPath) as! FoodTableViewCell
+        
+        let foodContent = (searchController.active && searchController.searchBar.text != "") ? searchResults[indexPath.row] : foodContents![indexPath.row]
+        cell.foodNameLabel?.text = foodContent.name
+        cell.foodLocationLabel?.text = foodContent.location
+        cell.foodTypeLabel?.text = foodContent.type
+        // 如果有圖片在執行
+        if let image = foodContent.image {
+            cell.foodImageView.image = UIImage(data: image)
+        }
+        
+        return cell
+    }
+    
+    // MARK: - TableView Delegate
+    
+    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        tableView.deselectRowAtIndexPath(indexPath, animated: true)
+    }
+    
+    override func tableView(tableView: UITableView, editActionsForRowAtIndexPath indexPath: NSIndexPath) -> [UITableViewRowAction]? {
+        
+        let deleteAction = UITableViewRowAction(style: .Default, title: "Delete") { (UITableViewRowAction, NSIndexPath) -> Void in
+            // Delete the row from the data source
+            if let managedObjectContext = (UIApplication.sharedApplication().delegate as? AppDelegate)?.managedObjectContext {
+                do {
+                    let foodToDelete = self.fetchResultController.objectAtIndexPath(indexPath) as! FoodContent
+                    managedObjectContext.deleteObject(foodToDelete)
+                    try managedObjectContext.save()
+                    tableView.reloadData()
+                } catch {
+                    fatalError("Failure to save context :\(error)")
+                }
+            }
+        }
+        
+        deleteAction.backgroundColor = UIColor(red: 237.0/255.0, green: 75.0/255.0, blue: 27.0/255.0, alpha: 1.0)
+        
+        return [deleteAction]
+    }
+    
+    
+    
+    override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+        if searchController.active && searchController.searchBar.text != "" {
+            return false
+        } else {
+            return true
+        }
+    }
+
+    override func tableView(tableView: UITableView, willDisplayCell cell: UITableViewCell, forRowAtIndexPath indexPath: NSIndexPath) {
+        // 初始狀態
+        cell.alpha = 0
+        // 結束狀態
+        UIView.animateWithDuration(1.0, animations: { cell.alpha = 1})
+    }
+
+    // MARK: -關閉加入新美食的視窗
+    @IBAction func unwindToHomeScreen(segue:UIStoryboardSegue) {
+        
+    }
+    
+    // MARK: - Navigation
+
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if segue.identifier == "foodContentDetail" {
+            if let indexPath = self.tableView.indexPathForSelectedRow {
+                let destinationController = segue.destinationViewController as! FoodContentViewController
+                destinationController.foodContent = (searchController.active && searchController.searchBar.text != "") ? self.searchResults[indexPath.row] : self.foodContents![indexPath.row]
+            }
+        }
+    }
+}
