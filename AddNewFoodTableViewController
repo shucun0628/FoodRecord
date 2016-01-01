@@ -1,0 +1,189 @@
+//
+//  AddNewFoodTableViewController.swift
+//  FoodRecord
+//
+//  Created by GuShuCun on 2015/12/9.
+//  Copyright © 2015年 GuShuCun. All rights reserved.
+//
+
+import UIKit
+import CoreData
+
+
+class AddNewFoodTableViewController: UITableViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+
+    @IBOutlet weak var addNewFoodImageView: UIImageView!
+    @IBOutlet weak var addNewFoodName: UITextField!
+    @IBOutlet weak var addNewFoodLoacation: UITextField!
+    @IBOutlet weak var addNewFoodPhone: UITextField!
+    @IBOutlet weak var addNewFoodType: UITextField!
+    
+    // 宣告變數來儲存其他資訊
+    var foodContent: FoodContent!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Uncomment the following line to preserve selection between presentations
+        // self.clearsSelectionOnViewWillAppear = false
+
+        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
+        // self.navigationItem.rightBarButtonItem = self.editButtonItem()
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        if indexPath.row == 0 {
+            let addphotoalert = UIAlertController(title: "請選取新增照片方式", message: "", preferredStyle: .ActionSheet)
+            addphotoalert.addAction(UIAlertAction(title: "從圖庫選取", style: .Default, handler: { (UIAlertAction) -> Void in
+                // isSourceTypeAvailable會確認是否取能媒體來源 -> 圖庫
+                addphotoalert.dismissViewControllerAnimated(true, completion: nil)
+                if UIImagePickerController.isSourceTypeAvailable(.PhotoLibrary) {
+                    let imagePicker = UIImagePickerController()
+                    imagePicker.delegate = self
+                    imagePicker.allowsEditing = false
+                    imagePicker.sourceType = .PhotoLibrary
+                    self.presentViewController(imagePicker, animated: true, completion: nil)
+                }
+            }))
+            addphotoalert.addAction(UIAlertAction(title: "從拍照取得", style: .Default, handler: { (UIAlertAction) -> Void in
+                // isSourceTypeAvailable會確認是否取能媒體來源 -> 相機
+                addphotoalert.dismissViewControllerAnimated(true, completion: nil)
+                if UIImagePickerController.isSourceTypeAvailable(.Camera) {
+                    let imagePicker = UIImagePickerController()
+                    imagePicker.delegate = self
+                    imagePicker.allowsEditing = false
+                    imagePicker.sourceType = .Camera
+                    self.presentViewController(imagePicker, animated: true, completion: nil)
+                }
+            }))
+            addphotoalert.addAction(UIAlertAction(title: "取消", style: .Destructive, handler: nil))
+            self.presentViewController(addphotoalert, animated: true, completion: nil)
+            
+        }
+        tableView.deselectRowAtIndexPath(indexPath, animated: true)
+    }
+    
+    // uiimagepickrcontrollerdelegate p235
+    
+    func imagePickerController(picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : AnyObject]) {
+        addNewFoodImageView.image = info[UIImagePickerControllerOriginalImage] as? UIImage
+        addNewFoodImageView.contentMode = UIViewContentMode.ScaleAspectFill
+        addNewFoodImageView.clipsToBounds = true
+        
+        dismissViewControllerAnimated(true, completion: nil)
+    }
+    
+    @IBAction func saveNewFoodContent(sender: UIBarButtonItem) {
+        
+        // Form validation
+        var errorField = ""
+        
+        if addNewFoodName.text == "" {
+            errorField = "name"
+        } else if addNewFoodLoacation.text == "" {
+            errorField = "location"
+        } else if addNewFoodPhone.text == "" {
+            errorField = "phone"
+        } else if addNewFoodType.text == "" {
+            errorField = "type"
+        }
+        
+        if errorField != "" {
+            
+            let alertController = UIAlertController(title: "Oops", message: "We can't proceed as you forget to fill in the food " + errorField + ". All fields are mandatory.", preferredStyle: .Alert)
+            alertController.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
+            
+            self.presentViewController(alertController, animated: true, completion: nil)
+            
+            return
+        }
+        
+        if let managedObjectContext = (UIApplication.sharedApplication().delegate as? AppDelegate)?.managedObjectContext {
+            
+            foodContent = NSEntityDescription.insertNewObjectForEntityForName("FoodContent", inManagedObjectContext: managedObjectContext) as! FoodContent
+            
+            foodContent.name = addNewFoodName.text
+            foodContent.location = addNewFoodLoacation.text
+            foodContent.phone = addNewFoodPhone.text
+            foodContent.type = addNewFoodType.text
+            foodContent.image = UIImagePNGRepresentation(addNewFoodImageView.image!)
+            
+            do {
+                try managedObjectContext.save()
+            } catch {
+                fatalError("Failutre to save context :\(error)")
+            }
+        }
+        // 離開Save畫面，回到紀錄畫面
+        dismissViewControllerAnimated(true, completion: nil)
+        
+//        self.performSegueWithIdentifier("unwindAddNewFoodToHomeScreen", sender: self)
+    }
+
+    
+    // MARK: -修正狀態列Bug
+//    func navigationController(navigationController: UINavigationController, willShowViewController viewController: UIViewController, animated: Bool) {
+//        UIApplication.sharedApplication().setStatusBarStyle(.LightContent, animated: false)
+//    }
+
+    /*
+    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCellWithIdentifier("reuseIdentifier", forIndexPath: indexPath)
+
+        // Configure the cell...
+
+        return cell
+    }
+    */
+
+    /*
+    // Override to support conditional editing of the table view.
+    override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+        // Return false if you do not want the specified item to be editable.
+        return true
+    }
+    */
+
+    /*
+    // Override to support editing the table view.
+    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+        if editingStyle == .Delete {
+            // Delete the row from the data source
+            tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
+        } else if editingStyle == .Insert {
+            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
+        }    
+    }
+    */
+
+    /*
+    // Override to support rearranging the table view.
+    override func tableView(tableView: UITableView, moveRowAtIndexPath fromIndexPath: NSIndexPath, toIndexPath: NSIndexPath) {
+
+    }
+    */
+
+    /*
+    // Override to support conditional rearranging of the table view.
+    override func tableView(tableView: UITableView, canMoveRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+        // Return false if you do not want the item to be re-orderable.
+        return true
+    }
+    */
+
+    /*
+    // MARK: - Navigation
+
+    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        // Get the new view controller using segue.destinationViewController.
+        // Pass the selected object to the new view controller.
+    }
+    */
+
+}
