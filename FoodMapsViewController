@@ -1,0 +1,58 @@
+//
+//  FoodMapsViewController.swift
+//  FoodRecord
+//
+//  Created by GuShuCun on 2015/11/18.
+//  Copyright © 2015年 GuShuCun. All rights reserved.
+//
+
+import UIKit
+import MapKit
+
+class FoodMapsViewController: UIViewController {
+
+    @IBOutlet weak var foodMapView: MKMapView!
+    // 宣告變數來儲存其他資訊
+    var foodContent: FoodContent!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // 轉換地址變全球地理坐標以及標註(Annotate)在地圖上
+        let geoCoder = CLGeocoder()
+        geoCoder.geocodeAddressString(foodContent.location) { (placemarks, error) -> Void in
+            if error != nil {
+                print(error)
+                return
+            }
+            
+            if placemarks != nil && placemarks?.count > 0 {
+                let placemark = placemarks![0] as CLPlacemark
+                // Add Annotation(泡泡視窗)
+                let annotation = MKPointAnnotation()
+                annotation.title = self.foodContent.name
+                annotation.subtitle = self.foodContent.location
+                // 取得全球地理位置座標
+                annotation.coordinate = placemark.location!.coordinate
+                self.foodMapView.showAnnotations([annotation], animated: true)
+                self.foodMapView.selectAnnotation(annotation, animated: true)
+            }
+        }
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+
+    /*
+    // MARK: - Navigation
+
+    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        // Get the new view controller using segue.destinationViewController.
+        // Pass the selected object to the new view controller.
+    }
+    */
+
+}
