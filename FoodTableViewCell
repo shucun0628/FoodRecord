@@ -1,0 +1,41 @@
+//
+//  FoodTableViewCell.swift
+//  FoodRecord
+//
+//  Created by GuShuCun on 2015/11/18.
+//  Copyright © 2015年 GuShuCun. All rights reserved.
+//
+
+import UIKit
+
+class FoodTableViewCell: UITableViewCell {
+
+    @IBOutlet weak var foodImageView: UIImageView! {
+        // 當讀取後再做
+        didSet {
+            updateUI()
+        }
+    }
+    @IBOutlet weak var foodNameLabel: UILabel!
+    @IBOutlet weak var foodLocationLabel: UILabel!
+    @IBOutlet weak var foodTypeLabel: UILabel!
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        // Initialization code
+    }
+
+    override func setSelected(selected: Bool, animated: Bool) {
+        super.setSelected(selected, animated: animated)
+
+        // Configure the view for the selected state
+    }
+    
+    // UpdataUI
+    func updateUI() {
+        // 圖片改成圓形
+        self.foodImageView?.layer.cornerRadius = self.foodImageView.frame.size.width / 2
+        self.foodImageView?.clipsToBounds = true
+    }
+
+}
