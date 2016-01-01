@@ -1,0 +1,201 @@
+//
+//  FoodContentViewController.swift
+//  FoodRecord
+//
+//  Created by GuShuCun on 2015/11/18.
+//  Copyright © 2015年 GuShuCun. All rights reserved.
+//
+
+import UIKit
+import Social
+import MessageUI
+
+class FoodContentViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, MFMailComposeViewControllerDelegate {
+
+    @IBOutlet weak var foodContentTableView: UITableView!
+    @IBOutlet weak var foodContentImageView: UIImageView!
+    
+    // 宣告變數來儲存其他資訊
+    var foodContent : FoodContent!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // 直接讀取圖片
+        self.foodContentImageView.image = UIImage(data: foodContent.image)
+        
+        // Navigation Bar的內容 -> Title
+        title = self.foodContent.name
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    //MARK: - Table View Data Source
+    
+    func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return 4
+    }
+    
+    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        let cellIdentifier = "foodContentCell"
+        let cell = tableView.dequeueReusableCellWithIdentifier(cellIdentifier, forIndexPath: indexPath) as! FoodContentTableViewCell
+        
+        cell.phoneCallButton.hidden = true
+        cell.mapsButton.hidden = true
+        
+        switch indexPath.row {
+        case 0:
+            cell.fieldLabel.text = "美食名稱"
+            cell.contentLabel.text = foodContent.name
+            cell.fieldLabel.font = UIFont.systemFontOfSize(13.0)
+            cell.contentLabel.font = UIFont.systemFontOfSize(18.0)
+        case 1:
+            cell.fieldLabel.text = "美食地址"
+            cell.contentLabel.text = foodContent.location
+            cell.fieldLabel.font = UIFont.systemFontOfSize(13.0)
+            cell.contentLabel.font = UIFont.systemFontOfSize(13.0)
+            cell.mapsButton.hidden = false
+        case 2:
+            cell.fieldLabel.text = "店家電話"
+            cell.contentLabel.text = foodContent.phone
+            cell.fieldLabel.font = UIFont.systemFontOfSize(13.0)
+            cell.contentLabel.font = UIFont.systemFontOfSize(13.0)
+            if cell.contentLabel.text == "無" {
+                cell.phoneCallButton.hidden = true
+            } else {
+                cell.phoneCallButton.hidden = false // 讓phone的button只出現在有電話的這列
+            }
+        case 3:
+            cell.fieldLabel.text = "美食類別"
+            cell.contentLabel.text = foodContent.type
+            cell.fieldLabel.font = UIFont.systemFontOfSize(13.0)
+            cell.contentLabel.font = UIFont.systemFontOfSize(13.0)
+        default:
+            break
+        }
+        
+        // 讓Cell變得透明
+        cell.backgroundColor = UIColor.clearColor()
+        
+        // 移除分隔線，讓表格註腳為空白，且變更分隔線顏色
+        self.foodContentTableView.tableFooterView = UIView(frame: CGRectZero)
+        self.foodContentTableView.separatorColor = UIColor.clearColor()
+        
+        return cell
+        
+    }
+    
+    //MARK: -底部ButtonItem按鈕方法
+    
+    // 加入最愛
+    @IBAction func foddAddFavoriteButton(sender: UIBarButtonItem) {
+        let notOpenViewController = UIAlertController(title: "近期推出新功能", message: "本功能尚未開放，謝謝。", preferredStyle: .Alert)
+        notOpenViewController.addAction(UIAlertAction(title: "確認", style: .Default, handler: nil))
+        self.presentViewController(notOpenViewController, animated: true, completion: nil)
+    }
+    
+    // 分享動作
+    @IBAction func foodActionButton(sender: UIBarButtonItem) {
+        
+        let actionAlertController = UIAlertController(title: "請選擇分享方式", message: "", preferredStyle: .Alert)
+        
+        // Facebook分享之後的確認訊息視窗
+        let alertMessageForFacebook = UIAlertController(title: "Facebook Unavailable", message: "You havne't registered your Facebook account. Please go to Settings > Facebook to sign in or create on.", preferredStyle: .Alert)
+        alertMessageForFacebook.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
+        // Twitter分享之後的確認訊息視窗
+        let alertMessageForTwitter = UIAlertController(title: "Twitter Unavailable", message: "You havne't registered your Twitter account. Please go to Settings > Twitter to sign in or create on.", preferredStyle: .Alert)
+        alertMessageForTwitter.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
+        // 錯誤訊息視窗-發送信件
+        let sendMailErrorAlert = UIAlertController(title: "錯誤", message: "無法發送信件", preferredStyle: .Alert)
+        sendMailErrorAlert.addAction(UIAlertAction(title: "確定", style: .Default, handler: nil))
+        
+        // FacebookShareAction
+        let shareToFacebookAction = UIAlertAction(title: "Facebook 臉書", style: .Default, handler: { (UIAlertAction) -> Void in
+            // Check Facebook in phone is setting ok
+            if (SLComposeViewController.isAvailableForServiceType(SLServiceTypeFacebook)) {
+                let facebookSocialView = SLComposeViewController(forServiceType: SLServiceTypeFacebook)
+                facebookSocialView.setInitialText(self.foodContent?.name)
+                facebookSocialView.addURL(NSURL(string: ""))
+                facebookSocialView.addImage(UIImage(data: self.foodContent.image!))
+                self.presentViewController(facebookSocialView, animated: true, completion: nil)
+            } else {
+                self.presentViewController(alertMessageForFacebook, animated: true, completion: nil)
+            }
+        })
+        
+        // TwitterShareAction
+        let shareToTwitterAction = UIAlertAction(title: "Twitter 推特", style: .Default, handler: { (UIAlertAction) -> Void in
+            // Check Twitter in phone is setting ok
+            if (SLComposeViewController.isAvailableForServiceType(SLServiceTypeTwitter)) {
+                let TwitterSocialView = SLComposeViewController(forServiceType: SLServiceTypeTwitter)
+                TwitterSocialView.setInitialText(self.foodContent.name)
+                TwitterSocialView.addURL(NSURL(string: ""))
+                TwitterSocialView.addImage(UIImage(data: self.foodContent.image!))
+                self.presentViewController(TwitterSocialView, animated: true, completion: nil)
+            } else {
+                self.presentViewController(alertMessageForTwitter, animated: true, completion: nil)
+            }
+        })
+        
+        // EmailShareAction
+        let sendToEmailAction = UIAlertAction(title: "E-mail 郵件", style: .Default, handler: { (UIAlertAction) -> Void in
+            if MFMailComposeViewController.canSendMail() {
+                let emailComposer = MFMailComposeViewController()
+                emailComposer.mailComposeDelegate = self
+                emailComposer.setToRecipients(["smilehc0981@gmail.com"])
+                emailComposer.navigationBar.tintColor = UIColor.whiteColor()
+                self.presentViewController(emailComposer, animated: true, completion: nil)
+            }
+        })
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .Destructive, handler: nil)
+        
+        actionAlertController.addAction(shareToFacebookAction)
+        actionAlertController.addAction(shareToTwitterAction)
+        actionAlertController.addAction(sendToEmailAction)
+        actionAlertController.addAction(cancelAction)
+        
+        self.presentViewController(actionAlertController, animated: true, completion: nil)
+        
+    }
+    
+    // 寄送信件方法
+    func mailComposeController(controller: MFMailComposeViewController, didFinishWithResult result: MFMailComposeResult, error: NSError?) {
+        switch result.rawValue {
+        case MFMailComposeResultCancelled.rawValue: print("Mail cancelled")
+        case MFMailComposeResultSaved.rawValue: print("Mail saved")
+        case MFMailComposeResultSent.rawValue: print("Mail sent")
+        case MFMailComposeResultFailed.rawValue: print("Failed to send mail: \(error?.localizedDescription)")
+        default: break
+        }
+        // relieve mail UI
+        dismissViewControllerAnimated(true, completion: nil)
+    }
+
+    // 撥打電話按鈕
+    @IBAction func phoneCallAction(sender: UIButton) {
+        let phoneAlert = UIAlertController(title: "確定撥打電話?", message: "\(foodContent.phone)", preferredStyle: .Alert)
+        phoneAlert.addAction(UIAlertAction(title: "通話", style: .Default, handler: { (UIAlertAction) -> Void in
+            let phoneUrl = NSURL(string: "tel://\(self.foodContent.phone)")
+            UIApplication.sharedApplication().openURL(phoneUrl!)
+        }))
+        phoneAlert.addAction(UIAlertAction(title: "取消", style: .Destructive, handler: nil))
+        self.presentViewController(phoneAlert, animated: true, completion: nil)
+    }
+    
+    // MARK: - Navigation
+
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if segue.identifier == "showFoodMap" {
+            let destinationController = segue.destinationViewController as! FoodMapsViewController
+            destinationController.foodContent = foodContent
+        }
+    }
+}
