@@ -1,0 +1,77 @@
+//
+//  FoodContent.swift
+//  FoodRecord
+//
+//  Created by GuShuCun on 2015/11/18.
+//  Copyright © 2015年 GuShuCun. All rights reserved.
+//
+
+import Foundation
+import CoreData
+import UIKit // 加入UIKit可以取得Application
+
+class FoodContent: NSManagedObject {
+    @NSManaged var name: String!
+    @NSManaged var phone: String!
+    @NSManaged var location: String!
+    @NSManaged var type: String!
+    @NSManaged var image: NSData!
+ 
+    override var description: String { return "SceneContent: {\n\tname => \(name)\n\tphone => \(phone)\n\tlocation => \(location)\n\ttype => \(type)\n\timage => \(image)\n}" }
+    
+    static let entityName = "FoodContent"
+    
+    // CoreData 新增方法
+    class func addFood(name name: String, phone: String, location: String, type: String, image: NSData?) {
+        let managedObjectContext = (UIApplication.sharedApplication().delegate as! AppDelegate).managedObjectContext
+        let food = NSEntityDescription.insertNewObjectForEntityForName(entityName, inManagedObjectContext: managedObjectContext) as! FoodContent
+        
+        food.name = name
+        food.phone = phone
+        food.location = location
+        food.type = type
+        food.image = image
+        
+        do {
+            try managedObjectContext.save()
+            print("saved! \(FoodContent.getAllFoodContents().count)")
+        } catch {
+            fatalError("Failure to save context :\(error)")
+        }
+    }
+    
+    // CoreData 取得所有資料
+    class func getAllFoodContents() -> [FoodContent] {
+        let managedObjectContext = (UIApplication.sharedApplication().delegate as! AppDelegate).managedObjectContext
+        let request = NSFetchRequest(entityName: entityName)
+        
+        do {
+            return try managedObjectContext.executeFetchRequest(request) as! [FoodContent]
+        } catch {
+            fatalError("Failure to save context :\(error)")
+        }
+    }
+    
+    // CoreData 刪除所有資料
+    class func deleteAll() {
+        let managedObjectContext = (UIApplication.sharedApplication().delegate as! AppDelegate).managedObjectContext
+        let request = NSFetchRequest(entityName: entityName)
+        
+        do {
+            let results = try managedObjectContext.executeFetchRequest(request) as! [FoodContent]
+            
+            for result in results {
+                managedObjectContext.deleteObject(result)
+            }
+            
+            do {
+                try managedObjectContext.save()
+            } catch {
+                fatalError("Failure to save context :\(error)")
+            }
+        } catch {
+            fatalError("Failure to save context :\(error)")
+        }
+    }
+    
+}
